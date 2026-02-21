@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeTrip QR Tracker</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <style>
+        body { margin: 0; font-family: sans-serif; background: #0f172a; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background: #1e293b; padding: 10px; text-align: center; border-bottom: 2px solid #334155; }
+        #map { flex-grow: 1; width: 100%; }
+        #controls { padding: 15px; background: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        #qr-container { background: white; padding: 10px; border-radius: 8px; }
+        button { background: #22c55e; color: black; border: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .status { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2 style="margin:0;">📍 Group Tracker</h2>
+    <div class="status" id="status">Ready to join...</div>
+</header>
+
+<div id="map"></div>
+
+<div id="controls" id="controlPanel">
+    <div id="qr-container">
+        <div id="qrcode"></div>
+    </div>
+    <p style="margin:5px 0;">Share QR to add friends!</p>
+    <button onclick="startTracking()">JOIN GROUP & SHARE LOCATION</button>
+</div>
+
+<script>
+// --- YOUR DATABASE KEYS ---
+const firebaseConfig = {
+  apiKey: "AIzaSyA2WVIQ3UzX5eF--0qdGX0Xv5rGZY5VcAw",
+  authDomain: "location-tracker-6fa7b.firebaseapp.com",
+  databaseURL: "https://location-tracker-6fa7b-default-rtdb.firebaseio.com",
+  projectId: "location-tracker-6fa7b",
+  storageBucket: "location-tracker-6fa7b.firebasestorage.app",
+  messagingSenderId: "771776177126",
+  appId: "1:771776177126:web:9ead884cf89d828df96c27",
+  measurementId: "G-CS9EZWMVZ2"
+};
+
+// Initialize
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Setup Group & User
+const groupId = location.hash.substring(1) || Math.random().toString(36).substr(2, 6);
+location.hash = groupId;
+const userId = Math.random().toString(36).substr(2, 4);
+const markers = {};
+
+// Initialize Map
+const map = L.map('map').setView([20.5937, 78.9629], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+// Generate QR Code
+new QRCode(document.getElementById("qrcode"), {
+    text: window.location.href,
+    width: 128,
+    height: 128
+});
+
+function startTracking() {
+    const name = prompt("Enter your name:") || "Explorer";
+    document.getElementById('status').innerText = "LIVE: Tracking Active";
+    document.getElementById('qrcode').style.display = "none"; // Hide QR on mobile to see map better
+
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                
+                // Upload to Firebase
+                db.ref(`groups/${groupId}/${userId}`).set({
+                    lat: latitude,
+                    lng: longitude,
+                    name: name
+                });
+
+                map.setView([latitude, longitude], 16);
+            },
+            (err) => alert("Please enable GPS/Location access!"),
+            { enableHighAccuracy: true }
+        );
+    }
+
+    // Listen for all group members
+    db.ref(`groups/${groupId}`).on('value', (snapshot) => {
+        const users = snapshot.val();
+        for (let id in users) {
+            const user = users[id];
+            if (markers[id]) {
+                markers[id].setLatLng([user.lat, user.lng]);
+            } else {
+                markers[id] = L.marker([user.lat, user.lng])
+                    .addTo(map)
+                    .bindPopup(user.name + (id === userId ? " (You)" : ""))
+                    .openPopup();
+            }
+        }
+    });
+}
+</script>
+
+</body>
+</html>
