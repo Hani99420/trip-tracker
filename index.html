@@ -2,118 +2,284 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeTrip QR Tracker</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GuardianSync | Designed by Hani</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
 
     <style>
-        body { margin: 0; font-family: sans-serif; background: #0f172a; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        header { background: #1e293b; padding: 10px; text-align: center; border-bottom: 2px solid #334155; }
-        #map { flex-grow: 1; width: 100%; }
-        #controls { padding: 15px; background: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        #qr-container { background: white; padding: 10px; border-radius: 8px; }
-        button { background: #22c55e; color: black; border: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .status { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
+        /* --- RESET & BASE --- */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body, html { height: 100%; width: 100%; overflow: hidden; font-family: 'Poppins', sans-serif; background: #000; }
+
+        /* Page Layouts */
+        .page { 
+            display: none; 
+            height: 100vh; 
+            width: 100vw; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            z-index: 10;
+        }
+        .active { display: flex; }
+
+        /* --- INTRO PAGE (Piano Black) --- */
+        #intro-page {
+            background: radial-gradient(circle at center, #111111 0%, #000000 100%);
+            color: #f5f5f5;
+        }
+        
+        .logo-glow { 
+            font-size: 4.5rem; 
+            margin-bottom: 20px; 
+            animation: logoPulse 3s infinite; 
+        }
+
+        .main-title { 
+            letter-spacing: 8px; 
+            font-weight: 400; 
+            text-transform: uppercase; 
+            font-size: 2rem; 
+            color: #fff; 
+        }
+
+        .tagline {
+            font-size: 0.75rem;
+            font-weight: 300;
+            color: #475569; 
+            letter-spacing: 4px;
+            text-transform: lowercase;
+            margin-top: 5px;
+            margin-bottom: 50px;
+        }
+
+        .btn-elegant {
+            padding: 14px 45px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #22c55e;
+            background: transparent;
+            border: 1px solid #22c55e;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: 0.4s;
+            letter-spacing: 3px;
+        }
+        .btn-elegant:active { background: rgba(34, 197, 94, 0.1); transform: scale(0.95); }
+
+        .credit { position: absolute; bottom: 40px; font-size: 0.6rem; color: #1e293b; letter-spacing: 5px; text-transform: uppercase; }
+
+        /* --- MAP PAGE STYLING --- */
+        #map-page { background: #000; }
+        #map { height: 100%; width: 100%; background: #000; }
+        
+        .map-overlay {
+            position: absolute;
+            top: 20px;
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .status-badge { background: rgba(0,0,0,0.8); color: #22c55e; padding: 6px 15px; border-radius: 20px; font-size: 0.7rem; border: 1px solid #22c55e; letter-spacing: 1px; }
+        .share-btn { background: #22c55e; color: black; border: none; padding: 6px 15px; border-radius: 20px; font-weight: bold; font-size: 0.7rem; pointer-events: auto; cursor: pointer; }
+
+        #qr-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            display: none;
+            z-index: 2000;
+            text-align: center;
+        }
+
+        /* --- DYNAMIC MARKER ANIMATIONS --- */
+        .custom-marker { display: flex; flex-direction: column; align-items: center; }
+        
+        .marker-label {
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .marker-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; position: relative; z-index: 2; }
+
+        .pulse-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            opacity: 0;
+            animation: ringPulse 2s infinite;
+        }
+
+        @keyframes ringPulse {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+
+        @keyframes logoPulse {
+            0% { transform: scale(1); text-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
+            50% { transform: scale(1.05); text-shadow: 0 0 30px rgba(34, 197, 94, 0.7); }
+            100% { transform: scale(1); text-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
+        }
+
+        /* Dark Map Filter */
+        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
     </style>
 </head>
 <body>
 
-<header>
-    <h2 style="margin:0;">📍 Group Tracker</h2>
-    <div class="status" id="status">Ready to join...</div>
-</header>
-
-<div id="map"></div>
-
-<div id="controls" id="controlPanel">
-    <div id="qr-container">
-        <div id="qrcode"></div>
+    <div id="intro-page" class="page active">
+        <div class="logo-glow">🛡️</div>
+        <h1 class="main-title">GuardianSync</h1>
+        <div class="tagline">keep in touch</div>
+        
+        <button class="btn-elegant" onclick="launchApp()">OPEN INTERFACE</button>
+        
+        <div class="credit">Designed by Hani</div>
     </div>
-    <p style="margin:5px 0;">Share QR to add friends!</p>
-    <button onclick="startTracking()">JOIN GROUP & SHARE LOCATION</button>
-</div>
+
+    <div id="map-page" class="page">
+        <div class="map-overlay">
+            <div class="status-badge">● LIVE PROTECTION</div>
+            <button class="share-btn" onclick="toggleQR()">SHARE QR</button>
+        </div>
+        
+        <div id="map"></div>
+        
+        <div id="qr-modal">
+            <div id="qrcode"></div>
+            <p style="color:#000; font-size:11px; margin-top:10px; font-weight:bold;">SCAN TO JOIN FAMILY</p>
+            <button onclick="toggleQR()" style="margin-top:10px; border:none; background:none; color:red; font-size:12px;">Close</button>
+        </div>
+    </div>
 
 <script>
-// --- YOUR DATABASE KEYS ---
-const firebaseConfig = {
-  apiKey: "AIzaSyA2WVIQ3UzX5eF--0qdGX0Xv5rGZY5VcAw",
-  authDomain: "location-tracker-6fa7b.firebaseapp.com",
-  databaseURL: "https://location-tracker-6fa7b-default-rtdb.firebaseio.com",
-  projectId: "location-tracker-6fa7b",
-  storageBucket: "location-tracker-6fa7b.firebasestorage.app",
-  messagingSenderId: "771776177126",
-  appId: "1:771776177126:web:9ead884cf89d828df96c27",
-  measurementId: "G-CS9EZWMVZ2"
-};
-
-// Initialize
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// Setup Group & User
-const groupId = location.hash.substring(1) || Math.random().toString(36).substr(2, 6);
-location.hash = groupId;
-const userId = Math.random().toString(36).substr(2, 4);
-const markers = {};
-
-// Initialize Map
-const map = L.map('map').setView([20.5937, 78.9629], 5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-// Generate QR Code
-new QRCode(document.getElementById("qrcode"), {
-    text: window.location.href,
-    width: 128,
-    height: 128
-});
-
-function startTracking() {
-    const name = prompt("Enter your name:") || "Explorer";
-    document.getElementById('status').innerText = "LIVE: Tracking Active";
-    document.getElementById('qrcode').style.display = "none"; // Hide QR on mobile to see map better
-
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                
-                // Upload to Firebase
-                db.ref(`groups/${groupId}/${userId}`).set({
-                    lat: latitude,
-                    lng: longitude,
-                    name: name
-                });
-
-                map.setView([latitude, longitude], 16);
-            },
-            (err) => alert("Please enable GPS/Location access!"),
-            { enableHighAccuracy: true }
-        );
+    // Navigation & Launch
+    function launchApp() {
+        const name = prompt("Enter Name to Secure:") || "Explorer";
+        document.getElementById('intro-page').classList.remove('active');
+        document.getElementById('map-page').classList.add('active');
+        startGuardian(name);
     }
 
-    // Listen for all group members
-    db.ref(`groups/${groupId}`).on('value', (snapshot) => {
-        const users = snapshot.val();
-        for (let id in users) {
-            const user = users[id];
-            if (markers[id]) {
-                markers[id].setLatLng([user.lat, user.lng]);
-            } else {
-                markers[id] = L.marker([user.lat, user.lng])
-                    .addTo(map)
-                    .bindPopup(user.name + (id === userId ? " (You)" : ""))
-                    .openPopup();
-            }
-        }
-    });
-}
-</script>
+    function toggleQR() {
+        const qr = document.getElementById('qr-modal');
+        qr.style.display = qr.style.display === 'block' ? 'none' : 'block';
+    }
 
+    // Assign consistent colors based on name/ID
+    function generateColor(id) {
+        const colors = ['#22c55e', '#00d2ff', '#ff007f', '#ffcc00', '#a0fe00', '#ff5e00', '#00ffcc'];
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) { hash = id.charCodeAt(i) + ((hash << 5) - hash); }
+        return colors[Math.abs(hash) % colors.length];
+    }
+
+    // --- FIREBASE SETUP ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyA2WVIQ3UzX5eF--0qdGX0Xv5rGZY5VcAw",
+      authDomain: "location-tracker-6fa7b.firebaseapp.com",
+      databaseURL: "https://location-tracker-6fa7b-default-rtdb.firebaseio.com",
+      projectId: "location-tracker-6fa7b",
+      storageBucket: "location-tracker-6fa7b.firebasestorage.app",
+      messagingSenderId: "771776177126",
+      appId: "1:771776177126:web:9ead884cf89d828df96c27",
+      measurementId: "G-CS9EZWMVZ2"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    
+    // Group & User Setup
+    const groupId = location.hash.substring(1) || Math.random().toString(36).substr(2, 6);
+    location.hash = groupId;
+    const userId = Math.random().toString(36).substr(2, 4);
+    const markers = {};
+
+    // Initialize Map
+    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // QR Generation
+    new QRCode(document.getElementById("qrcode"), { 
+        text: window.location.href, 
+        width: 150, 
+        height: 150,
+        colorDark : "#000000",
+        colorLight : "#ffffff"
+    });
+
+    function startGuardian(userName) {
+        const myColor = generateColor(userId);
+
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition((pos) => {
+                const { latitude, longitude } = pos.coords;
+                db.ref(`groups/${groupId}/${userId}`).set({ 
+                    lat: latitude, 
+                    lng: longitude, 
+                    name: userName,
+                    color: myColor
+                });
+                map.setView([latitude, longitude], 16);
+            }, null, { enableHighAccuracy: true });
+        }
+
+        // Listen for all family members
+        db.ref(`groups/${groupId}`).on('value', (snapshot) => {
+            const users = snapshot.val();
+            for (let id in users) {
+                const u = users[id];
+                const uCol = u.color || '#22c55e';
+                
+                const customIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `
+                        <div class="custom-marker">
+                            <div class="marker-label" style="border-color: ${uCol}">${u.name}</div>
+                            <div style="position:relative; width:14px; height:14px;">
+                                <div class="pulse-ring" style="border: 3px solid ${uCol}"></div>
+                                <div class="marker-dot" style="background-color: ${uCol}"></div>
+                            </div>
+                        </div>`,
+                    iconSize: [40, 50],
+                    iconAnchor: [20, 50]
+                });
+
+                if (markers[id]) {
+                    markers[id].setLatLng([u.lat, u.lng]);
+                    markers[id].setIcon(customIcon);
+                } else {
+                    markers[id] = L.marker([u.lat, u.lng], { icon: customIcon }).addTo(map);
+                }
+            }
+        });
+    }
+</script>
 </body>
 </html>
