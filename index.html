@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GuardianSync | Command Center</title>
+    <title>GuardianSync | Pro</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -24,7 +27,12 @@
         .main-title { letter-spacing: 6px; text-transform: uppercase; font-size: 1.8rem; margin: 10px 0; text-align: center; }
         .btn-elegant { padding: 12px 40px; color: #22c55e; border: 1px solid #22c55e; background: none; border-radius: 4px; cursor: pointer; letter-spacing: 2px; font-weight: 600; }
 
+        /* Map UI Overlay */
         #map { height: 100%; width: 100%; z-index: 1; }
+        
+        /* Map Visibility: Removed the dark invert filter to show real colors */
+        .leaflet-tile-pane { filter: none !important; }
+
         .ui-layer { position: absolute; top: 0; left: 0; z-index: 1000; width: 100%; height: 100%; padding: 15px; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
         
         .top-bar { display: flex; justify-content: space-between; pointer-events: auto; }
@@ -42,12 +50,34 @@
         #admin-panel { position: absolute; top: 75px; right: 15px; background: rgba(200,0,0,0.2); border: 1px solid #ff3b3b; padding: 10px; border-radius: 8px; z-index: 1001; pointer-events: auto; display: none; }
         .admin-btn { background: #ff3b3b; color: white; border: none; padding: 4px 8px; font-size: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; }
 
+        /* ANIMATED DESTINATION MARKER */
+        .dest-beacon { position: relative; display: flex; align-items: center; justify-content: center; }
+        .beacon-ring {
+            position: absolute; width: 40px; height: 40px;
+            background: rgba(239, 68, 68, 0.4); border-radius: 50%;
+            animation: beaconPulse 1.5s infinite;
+        }
+        .beacon-center {
+            width: 14px; height: 14px; background: #ef4444;
+            border: 2px solid white; border-radius: 50%; z-index: 2;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+        }
+        .dest-label {
+            position: absolute; top: -25px; background: #ef4444; color: white;
+            padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold;
+            white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        @keyframes beaconPulse {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+
+        /* Hiding Leaflet Routing UI */
+        .leaflet-routing-container { display: none !important; }
+
         #qr-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; display: none; z-index: 2000; text-align: center; color: black; }
-        
-        .pulse-ring { position: absolute; width: 30px; height: 30px; border-radius: 50%; animation: ringPulse 2s infinite; top: -8px; left: -8px; }
-        @keyframes ringPulse { 0% { transform: scale(0.3); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
         @keyframes logoPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        .leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
     </style>
 </head>
 <body>
@@ -112,15 +142,10 @@
     if (isHost) window.location.hash = groupId;
 
     const userId = Math.random().toString(36).substr(2, 4);
-    let myName = "";
-    let isFirstPosition = true;
-    let isKicked = false;
+    let myName = "", isFirstPosition = true, isKicked = false, watchId = null;
+    let myPos = null, destPos = null, routingControl = null;
     const markers = {};
     let destMarker = null;
-    let navLine = null;
-    let myPos = null;
-    let destPos = null;
-    let watchId = null;
 
     if (!isHost) {
         document.getElementById('entry-btn').innerText = "JOIN FAMILY SESSION";
@@ -144,11 +169,30 @@
         startGuardian();
     }
 
+    // UPDATED: Road-following routing logic
     function updateNavLine() {
         if (myPos && destPos) {
-            const path = [myPos, destPos];
-            if (navLine) { navLine.setLatLngs(path); } 
-            else { navLine = L.polyline(path, { color: '#22c55e', weight: 3, opacity: 0.7, dashArray: '10, 10' }).addTo(map); }
+            if (routingControl) {
+                routingControl.setWaypoints([
+                    L.latLng(myPos[0], myPos[1]),
+                    L.latLng(destPos[0], destPos[1])
+                ]);
+            } else {
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(myPos[0], myPos[1]),
+                        L.latLng(destPos[0], destPos[1])
+                    ],
+                    lineOptions: {
+                        styles: [{ color: '#22c55e', opacity: 0.8, weight: 6 }]
+                    },
+                    addWaypoints: false,
+                    draggableWaypoints: false,
+                    fitSelectedRoutes: false,
+                    show: false,
+                    createMarker: function() { return null; }
+                }).addTo(map);
+            }
         }
     }
 
@@ -157,7 +201,7 @@
 
         if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition((pos) => {
-                if (isKicked) return; // Stop updating if kicked
+                if (isKicked) return;
                 const { latitude, longitude } = pos.coords;
                 myPos = [latitude, longitude];
                 db.ref(`groups/${groupId}/users/${userId}`).set({ lat: latitude, lng: longitude, name: myName, color: myColor });
@@ -167,8 +211,6 @@
             }, null, { enableHighAccuracy: true });
         }
 
-        // --- THE KICK LISTENER ---
-        // If my own node is deleted by the host, force exit
         db.ref(`groups/${groupId}/users/${userId}`).on('value', (snapshot) => {
             if (!snapshot.exists() && !isFirstPosition) {
                 isKicked = true;
@@ -190,7 +232,11 @@
                 destPos = [d.lat, d.lng];
                 if (destMarker) map.removeLayer(destMarker);
                 destMarker = L.marker(destPos, {
-                    icon: L.divIcon({ className:'dest', html:'<div style="background:#ff3b3b; color:white; padding:4px 8px; border-radius:4px; font-size:9px; font-weight:bold; white-space:nowrap;">📍 DESTINATION</div>' })
+                    icon: L.divIcon({ 
+                        className: 'dest-beacon', 
+                        html: '<div class="dest-label">GO HERE</div><div class="beacon-ring"></div><div class="beacon-center"></div>',
+                        iconSize: [40, 40]
+                    })
                 }).addTo(map);
                 updateNavLine();
             }
@@ -246,4 +292,5 @@
     function toggleQR() { const m = document.getElementById('qr-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
 </script>
 </body>
-</html>
+                    </html>
+                        
