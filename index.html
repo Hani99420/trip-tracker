@@ -27,14 +27,10 @@
         .main-title { letter-spacing: 6px; text-transform: uppercase; font-size: 1.8rem; margin: 10px 0; text-align: center; }
         .btn-elegant { padding: 12px 40px; color: #22c55e; border: 1px solid #22c55e; background: none; border-radius: 4px; cursor: pointer; letter-spacing: 2px; font-weight: 600; }
 
-        /* Map UI Overlay */
         #map { height: 100%; width: 100%; z-index: 1; }
-        
-        /* Map Visibility: Removed the dark invert filter to show real colors */
         .leaflet-tile-pane { filter: none !important; }
 
         .ui-layer { position: absolute; top: 0; left: 0; z-index: 1000; width: 100%; height: 100%; padding: 15px; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
-        
         .top-bar { display: flex; justify-content: space-between; pointer-events: auto; }
         .status { background: rgba(0,0,0,0.85); padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; border: 1px solid #22c55e; color: #22c55e; font-weight: 600; }
         
@@ -50,32 +46,16 @@
         #admin-panel { position: absolute; top: 75px; right: 15px; background: rgba(200,0,0,0.2); border: 1px solid #ff3b3b; padding: 10px; border-radius: 8px; z-index: 1001; pointer-events: auto; display: none; }
         .admin-btn { background: #ff3b3b; color: white; border: none; padding: 4px 8px; font-size: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; }
 
-        /* ANIMATED DESTINATION MARKER */
         .dest-beacon { position: relative; display: flex; align-items: center; justify-content: center; }
-        .beacon-ring {
-            position: absolute; width: 40px; height: 40px;
-            background: rgba(239, 68, 68, 0.4); border-radius: 50%;
-            animation: beaconPulse 1.5s infinite;
-        }
-        .beacon-center {
-            width: 14px; height: 14px; background: #ef4444;
-            border: 2px solid white; border-radius: 50%; z-index: 2;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
-        }
-        .dest-label {
-            position: absolute; top: -25px; background: #ef4444; color: white;
-            padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold;
-            white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+        .beacon-ring { position: absolute; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.4); border-radius: 50%; animation: beaconPulse 1.5s infinite; }
+        .beacon-center { width: 14px; height: 14px; background: #ef4444; border: 2px solid white; border-radius: 50%; z-index: 2; box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+        .dest-label { position: absolute; top: -25px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
-        @keyframes beaconPulse {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
-        }
+        /* GOOGLE STYLE DISTANCE TAG */
+        .route-dist-tag { background: #4285F4; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 1px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
 
-        /* Hiding Leaflet Routing UI */
+        @keyframes beaconPulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         .leaflet-routing-container { display: none !important; }
-
         #qr-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; display: none; z-index: 2000; text-align: center; color: black; }
         @keyframes logoPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
@@ -143,7 +123,7 @@
 
     const userId = Math.random().toString(36).substr(2, 4);
     let myName = "", isFirstPosition = true, isKicked = false, watchId = null;
-    let myPos = null, destPos = null, routingControl = null;
+    let myPos = null, destPos = null, routingControl = null, distMarker = null;
     const markers = {};
     let destMarker = null;
 
@@ -169,28 +149,29 @@
         startGuardian();
     }
 
-    // UPDATED: Road-following routing logic
+    // UPDATED: BLUE GOOGLE-STYLE ROUTING LINE
     function updateNavLine() {
         if (myPos && destPos) {
             if (routingControl) {
-                routingControl.setWaypoints([
-                    L.latLng(myPos[0], myPos[1]),
-                    L.latLng(destPos[0], destPos[1])
-                ]);
+                routingControl.setWaypoints([L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])]);
             } else {
                 routingControl = L.Routing.control({
-                    waypoints: [
-                        L.latLng(myPos[0], myPos[1]),
-                        L.latLng(destPos[0], destPos[1])
-                    ],
+                    waypoints: [L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])],
                     lineOptions: {
-                        styles: [{ color: '#22c55e', opacity: 0.8, weight: 6 }]
+                        styles: [
+                            { color: '#1a73e8', opacity: 0.9, weight: 8 }, // Google Blue
+                            { color: '#ffffff', opacity: 0.4, weight: 2 }  // Center highlight
+                        ]
                     },
-                    addWaypoints: false,
-                    draggableWaypoints: false,
-                    fitSelectedRoutes: false,
-                    show: false,
+                    addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false, show: false,
                     createMarker: function() { return null; }
+                }).on('routesfound', function(e) {
+                    const d = e.routes[0].summary.totalDistance;
+                    const text = d > 1000 ? (d/1000).toFixed(1) + " km" : Math.round(d) + " m";
+                    if (distMarker) map.removeLayer(distMarker);
+                    distMarker = L.marker(myPos, {
+                        icon: L.divIcon({ className: 'rt-tag', html: `<div class="route-dist-tag">${text}</div>`, iconAnchor: [0, -30] })
+                    }).addTo(map);
                 }).addTo(map);
             }
         }
@@ -222,7 +203,11 @@
 
         if (isHost) {
             map.on('contextmenu', (e) => {
+                const isUpdating = destPos !== null;
                 db.ref(`groups/${groupId}/dest`).set({ lat: e.latlng.lat, lng: e.latlng.lng });
+                // AUTO MSG:
+                const msg = isUpdating ? "📍 HOST CHANGED THE DESTINATION! FOLLOW BLUE LINE." : "📍 HOST SET THE DESTINATION! FOLLOW BLUE LINE.";
+                db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: msg });
             });
         }
 
@@ -265,7 +250,6 @@
                     html: `<div style="display:flex; flex-direction:column; align-items:center;">
                             <div style="background:rgba(0,0,0,0.8); color:white; padding:2px 6px; border-radius:8px; font-size:9px; border:1px solid ${uCol};">${u.name}</div>
                             <div style="position:relative; width:12px; height:12px;">
-                                <div class="pulse-ring" style="border:2px solid ${uCol}"></div>
                                 <div style="width:12px; height:12px; background:${uCol}; border:2px solid #fff; border-radius:50%;"></div>
                             </div></div>`,
                     iconSize: [40, 50], iconAnchor: [20, 50]
@@ -292,5 +276,5 @@
     function toggleQR() { const m = document.getElementById('qr-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
 </script>
 </body>
-                    </html>
-                        
+                        </html>
+    
