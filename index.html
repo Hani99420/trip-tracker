@@ -32,7 +32,6 @@
 
         #map { height: 100%; width: 100%; z-index: 1; background: #f8f9fa; }
         
-        /* MOVED SEARCH BAR TO TOP LEFT & STYLED WHITE */
         .leaflet-top.leaflet-left { top: 70px; left: 10px; } 
         .leaflet-control-geocoder { background: white !important; border: 2px solid #22c55e !important; border-radius: 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; pointer-events: auto !important; }
         .leaflet-control-geocoder-form input { color: #333 !important; font-weight: 500; }
@@ -58,7 +57,7 @@
         .beacon-ring { position: absolute; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.4); border-radius: 50%; animation: beaconPulse 1.5s infinite; }
         .beacon-center { width: 14px; height: 14px; background: #ef4444; border: 2px solid white; border-radius: 50%; z-index: 2; box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
         .dest-label { position: absolute; top: -25px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; white-space: nowrap; }
-        .route-dist-tag { background: #1a73e8; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 1px solid white; }
+        .route-dist-tag { background: #1a73e8; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 1px solid white; pointer-events: none; }
 
         @keyframes beaconPulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         .leaflet-routing-container { display: none !important; }
@@ -138,28 +137,19 @@
         document.getElementById('host-qr-btn').style.display = 'none';
     }
 
-    // MAP INITIALIZATION
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 5);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-        maxZoom: 20
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);
 
     new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 150, height: 150 });
 
     if (isHost) {
-        const geocoder = L.Control.geocoder({ 
-            defaultMarkGeocode: false,
-            placeholder: "Search Destination...",
-            position: 'topleft' 
-        })
+        L.Control.geocoder({ defaultMarkGeocode: false, placeholder: "Search Destination...", position: 'topleft' })
         .on('markgeocode', function(e) {
             const latlng = e.geocode.center;
             map.setView(latlng, 18);
             db.ref(`groups/${groupId}/dest`).set({ lat: latlng.lat, lng: latlng.lng });
             db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: "📍 TARGET SET: " + e.geocode.name });
-        })
-        .addTo(map);
+        }).addTo(map);
     }
 
     function launchApp() {
@@ -174,26 +164,29 @@
         startGuardian();
     }
 
-    // UPDATED NAVIGATION LINE (BLUE)
+    // PERFECTED REAL-TIME NAVIGATION LINE
     function updateNavLine() {
         if (myPos && destPos) {
+            if (distMarker) map.removeLayer(distMarker);
+            
+            // Forces recalculation by clearing old routing instance
             if (routingControl) {
-                routingControl.setWaypoints([L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])]);
-            } else {
-                routingControl = L.Routing.control({
-                    waypoints: [L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])],
-                    lineOptions: { styles: [{ color: '#1a73e8', opacity: 0.9, weight: 8 }, { color: 'white', opacity: 0.4, weight: 3 }] },
-                    addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false, show: false,
-                    createMarker: function() { return null; }
-                }).on('routesfound', function(e) {
-                    const d = e.routes[0].summary.totalDistance;
-                    const text = d > 1000 ? (d/1000).toFixed(1) + " km" : Math.round(d) + " m";
-                    if (distMarker) map.removeLayer(distMarker);
-                    distMarker = L.marker(myPos, {
-                        icon: L.divIcon({ className: 'rt-tag', html: `<div class="route-dist-tag">${text}</div>`, iconAnchor: [0, -30] })
-                    }).addTo(map);
-                }).addTo(map);
+                map.removeControl(routingControl);
+                routingControl = null;
             }
+
+            routingControl = L.Routing.control({
+                waypoints: [L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])],
+                lineOptions: { styles: [{ color: '#1a73e8', opacity: 0.9, weight: 8 }, { color: 'white', opacity: 0.4, weight: 3 }] },
+                addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false, show: false,
+                createMarker: function() { return null; }
+            }).on('routesfound', function(e) {
+                const d = e.routes[0].summary.totalDistance;
+                const text = d > 1000 ? (d/1000).toFixed(1) + " km" : Math.round(d) + " m";
+                distMarker = L.marker(myPos, {
+                    icon: L.divIcon({ className: 'rt-tag', html: `<div class="route-dist-tag">${text}</div>`, iconAnchor: [0, -30] })
+                }).addTo(map);
+            }).addTo(map);
         }
     }
 
@@ -208,17 +201,12 @@
                 db.ref(`groups/${groupId}/users/${userId}`).set({ lat: latitude, lng: longitude, name: myName, color: myColor });
                 db.ref(`groups/${groupId}/users/${userId}`).onDisconnect().remove();
                 if (isFirstPosition) { map.setView(myPos, 17); isFirstPosition = false; }
-                
-                // Force line update on move
                 if (destPos) updateNavLine();
             }, null, { enableHighAccuracy: true });
         }
 
         db.ref(`groups/${groupId}/users/${userId}`).on('value', (snapshot) => {
-            if (!snapshot.exists() && !isFirstPosition) {
-                isKicked = true;
-                location.reload();
-            }
+            if (!snapshot.exists() && !isFirstPosition) { isKicked = true; location.reload(); }
         });
 
         if (isHost) {
@@ -234,14 +222,9 @@
                 destPos = [d.lat, d.lng];
                 if (destMarker) map.removeLayer(destMarker);
                 destMarker = L.marker(destPos, {
-                    icon: L.divIcon({ 
-                        className: 'dest-beacon', 
-                        html: '<div class="dest-label">GO HERE</div><div class="beacon-ring"></div><div class="beacon-center"></div>',
-                        iconSize: [40, 40]
-                    })
+                    icon: L.divIcon({ className: 'dest-beacon', html: '<div class="dest-label">GO HERE</div><div class="beacon-ring"></div><div class="beacon-center"></div>', iconSize: [40, 40] })
                 }).addTo(map);
-                // Trigger line when destination changes
-                setTimeout(updateNavLine, 500);
+                setTimeout(updateNavLine, 300);
             }
         });
 
@@ -264,9 +247,7 @@
                 }
                 const icon = L.divIcon({
                     className: 'c-icon',
-                    html: `<div style="display:flex; flex-direction:column; align-items:center;">
-                            <div style="background:rgba(0,0,0,0.8); color:white; padding:2px 6px; border-radius:8px; font-size:9px; border:1px solid ${uCol};">${u.name}</div>
-                            <div style="width:12px; height:12px; background:${uCol}; border:2px solid #fff; border-radius:50%;"></div></div>`,
+                    html: `<div style="display:flex; flex-direction:column; align-items:center;"><div style="background:rgba(0,0,0,0.8); color:white; padding:2px 6px; border-radius:8px; font-size:9px; border:1px solid ${uCol};">${u.name}</div><div style="width:12px; height:12px; background:${uCol}; border:2px solid #fff; border-radius:50%;"></div></div>`,
                     iconSize: [40, 50], iconAnchor: [20, 50]
                 });
                 if (markers[id]) { markers[id].setLatLng([u.lat, u.lng]); markers[id].setIcon(icon); } 
