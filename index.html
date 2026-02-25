@@ -32,32 +32,38 @@
 
         #map { height: 100%; width: 100%; z-index: 1; background: #f8f9fa; }
         
-        /* SEARCH BAR POSITION (LEFT) */
-        .leaflet-top.leaflet-left { top: 80px !important; left: 10px !important; } 
-        .leaflet-control-geocoder { background: white !important; border: 2px solid #1a73e8 !important; border-radius: 8px !important; pointer-events: auto !important; }
+        /* MOVED SEARCH BAR TO TOP LEFT & STYLED WHITE */
+        .leaflet-top.leaflet-left { top: 70px; left: 10px; } 
+        .leaflet-control-geocoder { background: white !important; border: 2px solid #22c55e !important; border-radius: 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; pointer-events: auto !important; }
         .leaflet-control-geocoder-form input { color: #333 !important; font-weight: 500; }
+        .leaflet-control-geocoder-icon { filter: none !important; }
 
         .ui-layer { position: absolute; top: 0; left: 0; z-index: 1000; width: 100%; height: 100%; padding: 15px; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
         .top-bar { display: flex; justify-content: space-between; pointer-events: auto; }
         .status { background: rgba(0,0,0,0.85); padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; border: 1px solid #22c55e; color: #22c55e; font-weight: 600; }
         
-        .chat-container { width: 100%; max-width: 320px; background: rgba(0,0,0,0.9); border-radius: 12px; padding: 12px; pointer-events: auto !important; margin-bottom: 25px; }
+        .chat-container { 
+            width: 100%; max-width: 320px; background: rgba(0,0,0,0.9); border-radius: 12px; border: 1px solid #333; 
+            padding: 12px; pointer-events: auto !important; margin-bottom: 25px;
+        }
         #chat-logs { height: 100px; overflow-y: auto; font-size: 0.8rem; color: #ccc; margin-bottom: 10px; border-bottom: 1px solid #222; }
         .chat-input-area { display: flex; gap: 8px; }
-        #chat-msg { background: #111; border: 1px solid #22c55e; color: white; padding: 10px; border-radius: 6px; flex-grow: 1; }
-        .send-btn { background: #22c55e; border: none; padding: 0 15px; border-radius: 6px; font-weight: bold; color: #000; }
+        #chat-msg { background: #111; border: 1px solid #22c55e; color: white; padding: 10px; border-radius: 6px; flex-grow: 1; font-size: 16px; }
+        .send-btn { background: #22c55e; border: none; padding: 0 15px; border-radius: 6px; font-weight: bold; cursor: pointer; color: #000; }
+
+        #admin-panel { position: absolute; top: 75px; right: 15px; background: rgba(200,0,0,0.2); border: 1px solid #ff3b3b; padding: 10px; border-radius: 8px; z-index: 1001; pointer-events: auto; display: none; }
+        .admin-btn { background: #ff3b3b; color: white; border: none; padding: 4px 8px; font-size: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; }
 
         .dest-beacon { position: relative; display: flex; align-items: center; justify-content: center; }
         .beacon-ring { position: absolute; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.4); border-radius: 50%; animation: beaconPulse 1.5s infinite; }
-        .beacon-center { width: 14px; height: 14px; background: #ef4444; border: 2px solid white; border-radius: 50%; z-index: 2; }
-        .dest-label { position: absolute; top: -25px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; }
-        
-        /* GOOGLE STYLE DISTANCE TAG */
-        .route-dist-tag { background: #1a73e8; color: white; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        .beacon-center { width: 14px; height: 14px; background: #ef4444; border: 2px solid white; border-radius: 50%; z-index: 2; box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+        .dest-label { position: absolute; top: -25px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; white-space: nowrap; }
+        .route-dist-tag { background: #1a73e8; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 1px solid white; }
 
         @keyframes beaconPulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         .leaflet-routing-container { display: none !important; }
         #qr-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; display: none; z-index: 2000; text-align: center; color: black; }
+        @keyframes logoPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
 </head>
 <body>
@@ -65,6 +71,7 @@
     <div id="intro-page" class="page active">
         <div class="logo-glow">🛡️</div>
         <h1 class="main-title">GuardianSync</h1>
+        <div style="font-size:0.7rem; color:#475569; letter-spacing:4px; margin-bottom:40px;">SECURE LIVE TRACKING</div>
         <button class="btn-elegant" id="entry-btn" onclick="launchApp()">INITIALIZE SYSTEM</button>
         <div style="position: absolute; bottom: 30px; font-size: 0.6rem; letter-spacing: 5px; color: #334155;">DESIGNED BY HANI</div>
     </div>
@@ -74,10 +81,17 @@
             <div class="top-bar">
                 <div class="status" id="role-display">● SECURE NODE</div>
                 <div style="display: flex; gap: 8px;">
-                    <button id="host-qr-btn" style="background:#22c55e; border:none; padding:6px 15px; border-radius:20px; font-size:0.7rem; font-weight:bold;" onclick="toggleQR()">SHARE</button>
+                    <button id="host-qr-btn" style="background:#22c55e; border:none; padding:6px 15px; border-radius:20px; font-size:0.7rem; font-weight:bold; color:black;" onclick="toggleQR()">SHARE</button>
                     <button onclick="leaveSession()" style="background:#333; color:white; border:none; padding:6px 15px; border-radius:20px; font-size:0.7rem;">LEAVE</button>
                 </div>
             </div>
+
+            <div id="admin-panel">
+                <p style="font-size: 0.6rem; color: #ff3b3b; font-weight: bold; margin-bottom: 5px;">HOST COMMAND</p>
+                <div id="user-list"></div>
+                <button class="admin-btn" style="width:100%;" onclick="nuclearReset()">WIPE ALL DATA</button>
+            </div>
+
             <div class="chat-container">
                 <div id="chat-logs">System ready...</div>
                 <div class="chat-input-area">
@@ -89,6 +103,7 @@
         <div id="map"></div>
         <div id="qr-modal">
             <div id="qrcode"></div>
+            <p style="font-size:11px; margin-top:10px; font-weight:bold;">SCAN TO JOIN</p>
             <button onclick="toggleQR()" style="color:red; margin-top:15px; border:none; background:none; font-weight:bold;">CLOSE</button>
         </div>
     </div>
@@ -118,33 +133,49 @@
     const markers = {};
     let destMarker = null;
 
-    if (!isHost) document.getElementById('entry-btn').innerText = "JOIN FAMILY SESSION";
+    if (!isHost) {
+        document.getElementById('entry-btn').innerText = "JOIN FAMILY SESSION";
+        document.getElementById('host-qr-btn').style.display = 'none';
+    }
 
+    // MAP INITIALIZATION WITH HIGH-DETAIL "WHITE" STYLE (OSM BRIGHT)
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 5);
     
-    // HIGH DETAIL WHITE THEME
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(map);
+    // This layer is white but highly detailed for cafes, shops, and malls
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+        maxZoom: 20
+    }).addTo(map);
 
     new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 150, height: 150 });
 
+    // HOST SEARCH BAR - MOVED TO TOP LEFT
     if (isHost) {
-        L.Control.geocoder({ defaultMarkGeocode: false, position: 'topleft', placeholder: "Find destination..." })
+        const geocoder = L.Control.geocoder({ 
+            defaultMarkGeocode: false,
+            placeholder: "Search Destination...",
+            position: 'topleft' 
+        })
         .on('markgeocode', function(e) {
             const latlng = e.geocode.center;
-            map.setView(latlng, 18);
+            map.setView(latlng, 18); // Zoom in deep to see shops
             db.ref(`groups/${groupId}/dest`).set({ lat: latlng.lat, lng: latlng.lng });
-            db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: "📍 SEARCHED: " + e.geocode.name });
-        }).addTo(map);
+            db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: "📍 TARGET SET: " + e.geocode.name });
+        })
+        .addTo(map);
     }
 
     function launchApp() {
         myName = prompt("Enter Name:") || "User";
         document.getElementById('intro-page').classList.remove('active');
         document.getElementById('map-page').classList.add('active');
+        if (isHost) {
+            document.getElementById('admin-panel').style.display = 'block';
+            document.getElementById('role-display').innerText = "● COMMAND HOST";
+            document.getElementById('role-display').style.color = "gold";
+        }
         startGuardian();
     }
 
-    // THE BLUE NAVIGATION LINE (GOOGLE STYLE)
     function updateNavLine() {
         if (myPos && destPos) {
             if (routingControl) {
@@ -152,12 +183,7 @@
             } else {
                 routingControl = L.Routing.control({
                     waypoints: [L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])],
-                    lineOptions: { 
-                        styles: [
-                            { color: '#1a73e8', opacity: 0.8, weight: 9 }, // Main Blue Line
-                            { color: 'white', opacity: 0.3, weight: 3 }    // Shine effect
-                        ] 
-                    },
+                    lineOptions: { styles: [{ color: '#1a73e8', opacity: 0.8, weight: 6 }, { color: 'white', opacity: 0.4, weight: 2 }] },
                     addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false, show: false,
                     createMarker: function() { return null; }
                 }).on('routesfound', function(e) {
@@ -165,7 +191,7 @@
                     const text = d > 1000 ? (d/1000).toFixed(1) + " km" : Math.round(d) + " m";
                     if (distMarker) map.removeLayer(distMarker);
                     distMarker = L.marker(myPos, {
-                        icon: L.divIcon({ className: 'rt-tag', html: `<div class="route-dist-tag">${text}</div>`, iconAnchor: [0, -35] })
+                        icon: L.divIcon({ className: 'rt-tag', html: `<div class="route-dist-tag">${text}</div>`, iconAnchor: [0, -30] })
                     }).addTo(map);
                 }).addTo(map);
             }
@@ -174,19 +200,30 @@
 
     function startGuardian() {
         const myColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+
         if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition((pos) => {
+                if (isKicked) return;
                 const { latitude, longitude } = pos.coords;
                 myPos = [latitude, longitude];
                 db.ref(`groups/${groupId}/users/${userId}`).set({ lat: latitude, lng: longitude, name: myName, color: myColor });
+                db.ref(`groups/${groupId}/users/${userId}`).onDisconnect().remove();
                 if (isFirstPosition) { map.setView(myPos, 17); isFirstPosition = false; }
                 updateNavLine();
             }, null, { enableHighAccuracy: true });
         }
 
+        db.ref(`groups/${groupId}/users/${userId}`).on('value', (snapshot) => {
+            if (!snapshot.exists() && !isFirstPosition) {
+                isKicked = true;
+                location.reload();
+            }
+        });
+
         if (isHost) {
             map.on('contextmenu', (e) => {
                 db.ref(`groups/${groupId}/dest`).set({ lat: e.latlng.lat, lng: e.latlng.lng });
+                db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: "📍 MANUAL PIN DROPPED." });
             });
         }
 
@@ -206,7 +243,7 @@
             }
         });
 
-        db.ref(`groups/${groupId}/chat`).on('child_added', (s) => {
+        db.ref(`groups/${groupId}/chat`).limitToLast(10).on('child_added', (s) => {
             const m = s.val();
             const logs = document.getElementById('chat-logs');
             logs.innerHTML += `<div><b>${m.user}:</b> ${m.text}</div>`;
@@ -215,18 +252,25 @@
 
         db.ref(`groups/${groupId}/users`).on('value', (snapshot) => {
             const users = snapshot.val();
+            const adminList = document.getElementById('user-list');
+            if (isHost) adminList.innerHTML = "";
             for (let id in users) {
                 const u = users[id];
+                const uCol = u.color || '#22c55e';
+                if (isHost && id !== userId) {
+                    adminList.innerHTML += `<div style="font-size:0.6rem; display:flex; justify-content:space-between; margin-bottom:5px;">${u.name} <button class="admin-btn" onclick="kickUser('${id}')">KICK</button></div>`;
+                }
                 const icon = L.divIcon({
                     className: 'c-icon',
                     html: `<div style="display:flex; flex-direction:column; align-items:center;">
-                            <div style="background:rgba(0,0,0,0.8); color:white; padding:2px 6px; border-radius:8px; font-size:9px; border:1px solid ${u.color};">${u.name}</div>
-                            <div style="width:12px; height:12px; background:${u.color}; border:2px solid #fff; border-radius:50%;"></div></div>`,
+                            <div style="background:rgba(0,0,0,0.8); color:white; padding:2px 6px; border-radius:8px; font-size:9px; border:1px solid ${uCol};">${u.name}</div>
+                            <div style="width:12px; height:12px; background:${uCol}; border:2px solid #fff; border-radius:50%;"></div></div>`,
                     iconSize: [40, 50], iconAnchor: [20, 50]
                 });
                 if (markers[id]) { markers[id].setLatLng([u.lat, u.lng]); markers[id].setIcon(icon); } 
                 else { markers[id] = L.marker([u.lat, u.lng], { icon: icon }).addTo(map); }
             }
+            for (let id in markers) { if (!users || !users[id]) { map.removeLayer(markers[id]); delete markers[id]; } }
         });
     }
 
@@ -237,7 +281,9 @@
             input.value = "";
         }
     }
-    function leaveSession() { location.reload(); }
+    function kickUser(id) { if (confirm("Remove user?")) db.ref(`groups/${groupId}/users/${id}`).remove(); }
+    function nuclearReset() { if (confirm("WIPE ENTIRE MAP?")) { db.ref(`groups/${groupId}`).remove().then(()=>location.reload()); } }
+    function leaveSession() { db.ref(`groups/${groupId}/users/${userId}`).remove(); location.reload(); }
     function toggleQR() { const m = document.getElementById('qr-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
 </script>
 </body>
