@@ -51,7 +51,6 @@
         .beacon-center { width: 14px; height: 14px; background: #ef4444; border: 2px solid white; border-radius: 50%; z-index: 2; box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
         .dest-label { position: absolute; top: -25px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
-        /* GOOGLE STYLE DISTANCE TAG */
         .route-dist-tag { background: #4285F4; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 1px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
 
         @keyframes beaconPulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
@@ -123,7 +122,7 @@
 
     const userId = Math.random().toString(36).substr(2, 4);
     let myName = "", isFirstPosition = true, isKicked = false, watchId = null;
-    let myPos = null, destPos = null, routingControl = null, distMarker = null;
+    let myPos = null, destPos = null, roadLine = null, distMarker = null;
     const markers = {};
     let destMarker = null;
 
@@ -149,32 +148,34 @@
         startGuardian();
     }
 
-    // UPDATED: BLUE GOOGLE-STYLE ROUTING LINE
-    function updateNavLine() {
-        if (myPos && destPos) {
-            if (routingControl) {
-                routingControl.setWaypoints([L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])]);
-            } else {
-                routingControl = L.Routing.control({
-                    waypoints: [L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])],
-                    lineOptions: {
-                        styles: [
-                            { color: '#1a73e8', opacity: 0.9, weight: 8 }, // Google Blue
-                            { color: '#ffffff', opacity: 0.4, weight: 2 }  // Center highlight
-                        ]
-                    },
-                    addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false, show: false,
-                    createMarker: function() { return null; }
-                }).on('routesfound', function(e) {
-                    const d = e.routes[0].summary.totalDistance;
-                    const text = d > 1000 ? (d/1000).toFixed(1) + " km" : Math.round(d) + " m";
-                    if (distMarker) map.removeLayer(distMarker);
-                    distMarker = L.marker(myPos, {
-                        icon: L.divIcon({ className: 'rt-tag', html: `<div class="route-dist-tag">${text}</div>`, iconAnchor: [0, -30] })
-                    }).addTo(map);
+    async function updateNavLine() {
+        // INSTANT CLEARANCE: Run this immediately before any networking
+        if (roadLine) { map.removeLayer(roadLine); roadLine = null; }
+        if (distMarker) { map.removeLayer(distMarker); distMarker = null; }
+
+        if (!myPos || !destPos) return;
+
+        try {
+            const query = await fetch(`https://router.project-osrm.org/route/v1/driving/${myPos[1]},${myPos[0]};${destPos[1]},${destPos[0]}?overview=full&geometries=geojson`);
+            const data = await query.json();
+            
+            if (data.routes && data.routes.length > 0) {
+                const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                
+                roadLine = L.polyline(coords, {
+                    color: '#1a73e8',
+                    weight: 8,
+                    opacity: 0.9,
+                    lineCap: 'round'
+                }).addTo(map);
+
+                const d = data.routes[0].distance;
+                const text = d > 1000 ? (d/1000).toFixed(1) + " km" : Math.round(d) + " m";
+                distMarker = L.marker(myPos, {
+                    icon: L.divIcon({ className: 'rt-tag', html: `<div class="route-dist-tag">${text}</div>`, iconAnchor: [0, -30] })
                 }).addTo(map);
             }
-        }
+        } catch (e) { console.error("Routing speed error:", e); }
     }
 
     function startGuardian() {
@@ -203,11 +204,12 @@
 
         if (isHost) {
             map.on('contextmenu', (e) => {
-                const isUpdating = destPos !== null;
+                // INSTANT LOCAL CLEAR: Makes the line vanish on host's screen instantly
+                if (roadLine) { map.removeLayer(roadLine); roadLine = null; }
+                
                 db.ref(`groups/${groupId}/dest`).set({ lat: e.latlng.lat, lng: e.latlng.lng });
-                // AUTO MSG:
-                const msg = isUpdating ? "📍 HOST CHANGED THE DESTINATION! FOLLOW BLUE LINE." : "📍 HOST SET THE DESTINATION! FOLLOW BLUE LINE.";
-                db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: msg });
+                db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: "📍 TARGET RECALIBRATED!" });
+                if (navigator.vibrate) navigator.vibrate(50);
             });
         }
 
@@ -276,4 +278,5 @@
     function toggleQR() { const m = document.getElementById('qr-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
 </script>
 </body>
-</html>
+    </html>
+    
