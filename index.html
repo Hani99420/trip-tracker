@@ -138,17 +138,15 @@
         document.getElementById('host-qr-btn').style.display = 'none';
     }
 
-    // MAP INITIALIZATION WITH HIGH-DETAIL "WHITE" STYLE (OSM BRIGHT)
+    // MAP INITIALIZATION
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 5);
     
-    // This layer is white but highly detailed for cafes, shops, and malls
     L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
         maxZoom: 20
     }).addTo(map);
 
     new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 150, height: 150 });
 
-    // HOST SEARCH BAR - MOVED TO TOP LEFT
     if (isHost) {
         const geocoder = L.Control.geocoder({ 
             defaultMarkGeocode: false,
@@ -157,7 +155,7 @@
         })
         .on('markgeocode', function(e) {
             const latlng = e.geocode.center;
-            map.setView(latlng, 18); // Zoom in deep to see shops
+            map.setView(latlng, 18);
             db.ref(`groups/${groupId}/dest`).set({ lat: latlng.lat, lng: latlng.lng });
             db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: "📍 TARGET SET: " + e.geocode.name });
         })
@@ -176,6 +174,7 @@
         startGuardian();
     }
 
+    // UPDATED NAVIGATION LINE (BLUE)
     function updateNavLine() {
         if (myPos && destPos) {
             if (routingControl) {
@@ -183,7 +182,7 @@
             } else {
                 routingControl = L.Routing.control({
                     waypoints: [L.latLng(myPos[0], myPos[1]), L.latLng(destPos[0], destPos[1])],
-                    lineOptions: { styles: [{ color: '#1a73e8', opacity: 0.8, weight: 6 }, { color: 'white', opacity: 0.4, weight: 2 }] },
+                    lineOptions: { styles: [{ color: '#1a73e8', opacity: 0.9, weight: 8 }, { color: 'white', opacity: 0.4, weight: 3 }] },
                     addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false, show: false,
                     createMarker: function() { return null; }
                 }).on('routesfound', function(e) {
@@ -209,7 +208,9 @@
                 db.ref(`groups/${groupId}/users/${userId}`).set({ lat: latitude, lng: longitude, name: myName, color: myColor });
                 db.ref(`groups/${groupId}/users/${userId}`).onDisconnect().remove();
                 if (isFirstPosition) { map.setView(myPos, 17); isFirstPosition = false; }
-                updateNavLine();
+                
+                // Force line update on move
+                if (destPos) updateNavLine();
             }, null, { enableHighAccuracy: true });
         }
 
@@ -239,7 +240,8 @@
                         iconSize: [40, 40]
                     })
                 }).addTo(map);
-                updateNavLine();
+                // Trigger line when destination changes
+                setTimeout(updateNavLine, 500);
             }
         });
 
