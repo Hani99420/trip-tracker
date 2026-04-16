@@ -28,11 +28,21 @@
         #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
 
         .ui-layer { position: absolute; top: 0; left: 0; z-index: 1000; width: 100%; height: 100%; padding: 15px; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
-        .top-bar { display: flex; justify-content: space-between; pointer-events: auto; }
+        .top-bar { display: flex; justify-content: space-between; pointer-events: auto; width: 100%; }
+        
+        /* Floating Glass Info Box (Small and Transparent) */
+        #nav-info-panel { 
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid #1a73e8;
+            padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600;
+            position: absolute; top: 50px; left: 15px; pointer-events: auto; display: none;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
         .status { background: rgba(0,0,0,0.85); padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; border: 1px solid #22c55e; color: #22c55e; font-weight: 600; }
         
         .chat-container { 
-            width: 100%; max-width: 320px; background: rgba(0,0,0,0.7) !important; backdrop-filter: blur(10px); 
+            width: 100%; max-width: 320px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); 
             border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); padding: 12px; pointer-events: auto !important; margin-bottom: 25px;
         }
         #chat-logs { height: 80px; overflow-y: auto; font-size: 0.75rem; color: #ccc; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -43,20 +53,14 @@
         #admin-panel { position: absolute; top: 75px; right: 15px; background: rgba(0,0,0,0.9); border: 1px solid #ff3b3b; padding: 12px; border-radius: 8px; z-index: 1001; pointer-events: auto; display: none; width: 220px; }
         .admin-btn { background: #ff3b3b; color: white; border: none; padding: 6px 10px; font-size: 0.65rem; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
 
-        /* The New Rectangular Info Box */
-        .route-info-box { 
-            background: rgba(0,0,0,0.9); color: #fff; padding: 6px 12px; border-radius: 4px; border-left: 4px solid #1a73e8;
-            font-size: 11px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.5); white-space: nowrap;
-        }
+        /* User Statistics Dashboard */
+        #host-dashboard { background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border: 1px solid gold; padding: 10px; border-radius: 8px; margin-top: 10px; max-height: 200px; overflow-y: auto; display: none; }
+        .user-stat-row { font-size: 0.65rem; border-bottom: 1px solid #333; padding: 6px 0; color: #eee; }
 
         .dest-beacon { position: relative; display: flex; align-items: center; justify-content: center; }
         .beacon-ring { position: absolute; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.4); border-radius: 50%; animation: beaconPulse 1.5s infinite; }
         .beacon-center { width: 14px; height: 14px; background: #ef4444; border: 2px solid white; border-radius: 50%; z-index: 2; }
         
-        /* Dashboard Styling */
-        #host-dashboard { background: rgba(0,0,0,0.95); border: 1px solid gold; padding: 10px; border-radius: 8px; margin-top: 10px; max-height: 150px; overflow-y: auto; display: none; }
-        .user-stat-row { font-size: 0.65rem; border-bottom: 1px solid #333; padding: 4px 0; color: #eee; }
-
         @keyframes beaconPulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         @keyframes hostGlow { 0%, 100% { box-shadow: 0 0 5px gold; } 50% { box-shadow: 0 0 15px gold; } }
         #qr-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; display: none; z-index: 2000; text-align: center; color: black; pointer-events: auto; }
@@ -74,18 +78,23 @@
 
     <div id="map-page" class="page">
         <div id="map"></div>
+        
+        <div id="nav-info-panel">
+            <span id="nav-dist">-- km</span> • <span id="nav-eta">-- min</span>
+        </div>
+
         <div class="ui-layer">
             <div class="top-bar">
                 <div class="status" id="role-display">● SECURE NODE</div>
                 <div style="display: flex; gap: 8px;">
-                    <button id="host-view-btn" style="background:gold; display:none; border:none; padding:6px 12px; border-radius:20px; font-size:0.7rem; font-weight:bold; color:black;" onclick="toggleDashboard()">DASHBOARD</button>
+                    <button id="host-view-btn" style="background:gold; display:none; border:none; padding:6px 12px; border-radius:20px; font-size:0.7rem; font-weight:bold; color:black;" onclick="toggleDashboard()">VIEW STATS</button>
                     <button id="host-qr-btn" style="background:#22c55e; border:none; padding:6px 12px; border-radius:20px; font-size:0.7rem; font-weight:bold; color:black;" onclick="toggleQR()">SHARE</button>
                     <button onclick="leaveSession()" style="background:#333; color:white; border:none; padding:6px 15px; border-radius:20px; font-size:0.7rem;">LEAVE</button>
                 </div>
             </div>
 
             <div id="admin-panel">
-                <p style="font-size: 0.6rem; color: gold; font-weight: 800; letter-spacing: 1px;">COMMAND CENTER</p>
+                <p style="font-size: 0.6rem; color: gold; font-weight: 800;">COMMAND CONSOLE</p>
                 <div id="host-dashboard"></div>
                 <div id="user-list" style="margin-top:10px;"></div>
                 <button class="admin-btn" style="width:100%;" onclick="nuclearReset()">WIPE ALL DATA</button>
@@ -128,7 +137,7 @@
 
     const userId = Math.random().toString(36).substr(2, 4);
     let myName = "", isFirstPosition = true, isKicked = false, watchId = null;
-    let myPos = null, destPos = null, roadLine = null, roadGlow = null, distMarker = null;
+    let myPos = null, destPos = null, roadLine = null, roadGlow = null;
     const markers = {};
     let destMarker = null;
 
@@ -158,11 +167,9 @@
         startGuardian();
     }
 
-    // THE RECTANGULAR INFO BOX + SMOOTH LINE
     async function updateNavLine() {
         if (roadLine) map.removeLayer(roadLine);
         if (roadGlow) map.removeLayer(roadGlow);
-        if (distMarker) map.removeLayer(distMarker);
 
         if (!myPos || !destPos) return;
 
@@ -182,22 +189,18 @@
                 const etaMin = Math.round(route.duration / 60);
                 const etaText = etaMin > 60 ? Math.floor(etaMin/60) + "h " + (etaMin%60) + "m" : etaMin + " min";
 
-                distMarker = L.marker(myPos, {
-                    icon: L.divIcon({ 
-                        className: 'rt-box', 
-                        html: `<div class="route-info-box">📍 ${distText} • ${etaText}</div>`, 
-                        iconAnchor: [0, -40] 
-                    })
-                }).addTo(map);
+                // UPDATE THE FLOATING GLASS BOX
+                document.getElementById('nav-info-panel').style.display = 'block';
+                document.getElementById('nav-dist').innerText = "📍 " + distText;
+                document.getElementById('nav-eta').innerText = etaText;
 
-                // Send my stats to Firebase for the Host Dashboard
                 db.ref(`groups/${groupId}/users/${userId}/stats`).set({ dist: distText, eta: etaText });
             }
         } catch (e) { console.error(e); }
     }
 
     function startGuardian() {
-        const myColor = isHost ? "gold" : '#' + Math.floor(Math.random()*16777215).toString(16);
+        const myColor = isHost ? "orange" : '#' + Math.floor(Math.random()*16777215).toString(16);
 
         if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition((pos) => {
@@ -264,7 +267,6 @@
                 const uCol = u.color || '#22c55e';
                 const badge = u.isHost ? "⭐ " : "";
                 
-                // HOST DASHBOARD LOGIC
                 if (isHost && !u.isHost && u.stats) {
                     dash.innerHTML += `<div class="user-stat-row"><b>${u.name}</b>: ${u.stats.dist} Away (${u.stats.eta})</div>`;
                 }
