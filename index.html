@@ -23,6 +23,15 @@
         #intro-page { background: radial-gradient(circle at center, #111 0%, #000 100%); }
         .logo-glow { font-size: 4rem; animation: logoPulse 3s infinite; }
         .main-title { letter-spacing: 6px; text-transform: uppercase; font-size: 1.8rem; margin: 10px 0; text-align: center; }
+        
+        /* Unified Input Styling */
+        .portal-input { 
+            background: rgba(255,255,255,0.05); border: 1px solid #333; color: white; 
+            padding: 12px; border-radius: 8px; text-align: center; letter-spacing: 2px; 
+            width: 250px; margin-bottom: 20px; outline: none; transition: border 0.3s;
+        }
+        .portal-input:focus { border-color: #22c55e; }
+
         .btn-elegant { padding: 12px 40px; color: #22c55e; border: 1px solid #22c55e; background: none; border-radius: 4px; cursor: pointer; letter-spacing: 2px; font-weight: 600; }
 
         #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
@@ -30,7 +39,6 @@
         .ui-layer { position: absolute; top: 0; left: 0; z-index: 1000; width: 100%; height: 100%; padding: 15px; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
         .top-bar { display: flex; justify-content: space-between; pointer-events: auto; width: 100%; }
         
-        /* THE RECENT CHANGE: Transparent Glass Navigation Panel (Top-Left) */
         #nav-info-panel { 
             background: rgba(0,0,0,0.7) !important; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid #1a73e8;
@@ -62,7 +70,19 @@
         
         @keyframes beaconPulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         @keyframes hostGlow { 0%, 100% { box-shadow: 0 0 5px gold; } 50% { box-shadow: 0 0 15px gold; } }
-        #qr-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; display: none; z-index: 2000; text-align: center; color: black; pointer-events: auto; }
+        
+        /* Advanced Share Modal */
+        #qr-modal { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: white; padding: 25px; border-radius: 15px; display: none; 
+            z-index: 2000; text-align: center; color: black; pointer-events: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .copy-code-btn { 
+            background: #eee; border: 1px solid #ccc; padding: 5px 10px; 
+            border-radius: 5px; font-size: 0.7rem; font-weight: bold; 
+            margin-top: 10px; cursor: pointer; display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -70,17 +90,17 @@
     <div id="intro-page" class="page active">
         <div class="logo-glow">🛡️</div>
         <h1 class="main-title">GuardianSync</h1>
-        <div style="font-size:0.7rem; color:#475569; letter-spacing:4px; margin-bottom:40px;">SECURE LIVE TRACKING</div>
-        <button class="btn-elegant" id="entry-btn" onclick="launchApp()">INITIALIZE SYSTEM</button>
+        <div style="font-size:0.7rem; color:#475569; letter-spacing:4px; margin-bottom:30px;">SECURE LIVE GRID</div>
+        
+        <input type="text" id="portal-key" class="portal-input" placeholder="ACCESS KEY OR SESSION CODE">
+        
+        <button class="btn-elegant" id="entry-btn" onclick="launchApp()">INITIALIZE</button>
         <div style="position: absolute; bottom: 30px; font-size: 0.6rem; letter-spacing: 5px; color: #334155;">DESIGNED BY HANI</div>
     </div>
 
     <div id="map-page" class="page">
         <div id="map"></div>
-        
-        <div id="nav-info-panel">
-            <span id="nav-dist">🛰️ Locating...</span> • <span id="nav-eta">--</span>
-        </div>
+        <div id="nav-info-panel"><span id="nav-dist">🛰️ Locating...</span> • <span id="nav-eta">--</span></div>
 
         <div class="ui-layer">
             <div class="top-bar">
@@ -110,8 +130,11 @@
         
         <div id="qr-modal">
             <div id="qrcode"></div>
-            <p style="font-size:11px; margin-top:10px; font-weight:bold;">SCAN TO JOIN</p>
-            <button onclick="toggleQR()" style="color:red; margin-top:15px; border:none; background:none; font-weight:bold;">CLOSE</button>
+            <p style="font-size:12px; margin-top:15px; font-weight:bold; color:#555;">SESSION CODE</p>
+            <h2 id="display-code" style="letter-spacing:5px; margin:5px 0;">------</h2>
+            <div class="copy-code-btn" onclick="copySessionCode()">COPY CODE</div>
+            <br>
+            <button onclick="toggleQR()" style="color:red; margin-top:15px; border:none; background:none; font-weight:bold; cursor:pointer;">CLOSE</button>
         </div>
     </div>
 
@@ -130,28 +153,51 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const isHost = !window.location.hash;
-    const groupId = window.location.hash.substring(1) || Math.random().toString(36).substr(2, 6);
-    if (isHost) window.location.hash = groupId;
-
-    const userId = Math.random().toString(36).substr(2, 4);
+    // Unified Logic for Host/User
+    let groupId = window.location.hash.substring(1);
+    let isHost = false;
     let myName = "", isFirstPosition = true, isKicked = false, watchId = null;
     let myPos = null, destPos = null, roadLine = null, roadGlow = null;
     const markers = {};
     let destMarker = null;
-
-    if (!isHost) {
-        document.getElementById('entry-btn').innerText = "JOIN GRID";
-        document.getElementById('host-qr-btn').style.display = 'none';
-    }
+    const userId = Math.random().toString(36).substr(2, 4);
 
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 150, height: 150 });
 
     function launchApp() {
-        let rawName = prompt("Enter Name:") || "User";
-        myName = rawName.replace(/[^\w\s]/gi, '').trim() || "User";
+        const inputKey = document.getElementById('portal-key').value.trim().toUpperCase();
+        
+        // 1. Check for Admin Secret
+        if (inputKey === "HANI77") {
+            isHost = true;
+            let rawName = prompt("ACCESS GRANTED. ENTER COMMANDER NAME:") || "HANI";
+            myName = rawName.replace(/[^\w\s]/gi, '').trim() + " (DEV)";
+            // Generate Session ID if not in one
+            if (!groupId) {
+                groupId = Math.random().toString(36).substr(2, 6).toUpperCase();
+                window.location.hash = groupId;
+            }
+        } 
+        // 2. Check for Joining existing session (via code)
+        else if (inputKey.length === 6) {
+            isHost = false;
+            groupId = inputKey;
+            window.location.hash = groupId;
+            let rawName = prompt("SESSION FOUND. ENTER YOUR IDENTITY:") || "User";
+            myName = rawName.replace(/[^\w\s]/gi, '').trim();
+        } 
+        // 3. Handle Direct Link Join
+        else if (groupId) {
+            isHost = false;
+            let rawName = prompt("JOINING SECURE GRID. ENTER YOUR IDENTITY:") || "User";
+            myName = rawName.replace(/[^\w\s]/gi, '').trim();
+        }
+        else {
+            alert("INVALID KEY. Please enter hani77 or a valid session code.");
+            return;
+        }
+
         document.getElementById('intro-page').classList.remove('active');
         document.getElementById('map-page').classList.add('active');
         setTimeout(() => map.invalidateSize(), 300);
@@ -159,28 +205,33 @@
         if (isHost) {
             document.getElementById('admin-panel').style.display = 'block';
             document.getElementById('host-view-btn').style.display = 'block';
-            document.getElementById('role-display').innerText = "⭐ COMMAND HOST";
+            document.getElementById('role-display').innerText = "⭐ COMMAND HOST | " + groupId;
             document.getElementById('role-display').style.color = "gold";
             document.getElementById('role-display').style.borderColor = "gold";
+        } else {
+            document.getElementById('role-display').innerText = "● SECURE NODE | " + groupId;
+            document.getElementById('host-qr-btn').style.display = 'none';
         }
+
+        // Initialize QR for this specific session
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 150, height: 150 });
+        document.getElementById('display-code').innerText = groupId;
+
         startGuardian();
     }
 
-    // THE RECENT CHANGE: No map bubbles. Everything in the Top-Left panel.
     async function updateNavLine() {
         if (roadLine) map.removeLayer(roadLine);
         if (roadGlow) map.removeLayer(roadGlow);
-
         if (!myPos || !destPos) return;
 
         try {
             const query = await fetch(`https://router.project-osrm.org/route/v1/driving/${myPos[1]},${myPos[0]};${destPos[1]},${destPos[0]}?overview=full&geometries=geojson`);
             const data = await query.json();
-            
             if (data.routes && data.routes.length > 0) {
                 const route = data.routes[0];
                 const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
-                
                 roadGlow = L.polyline(coords, { color: '#007bff', weight: 10, opacity: 0.2 }).addTo(map);
                 roadLine = L.polyline(coords, { color: '#1a73e8', weight: 4, opacity: 1 }).addTo(map);
 
@@ -189,10 +240,8 @@
                 const etaMin = Math.round(route.duration / 60);
                 const etaText = etaMin > 60 ? Math.floor(etaMin/60) + "h " + (etaMin%60) + "m" : etaMin + " min";
 
-                // UPDATE THE FIXED GLASS PANEL
                 document.getElementById('nav-dist').innerText = "📍 " + distText;
                 document.getElementById('nav-eta').innerText = etaText;
-
                 db.ref(`groups/${groupId}/users/${userId}/stats`).set({ dist: distText, eta: etaText });
             }
         } catch (e) { console.error(e); }
@@ -200,17 +249,13 @@
 
     function startGuardian() {
         const myColor = isHost ? "orange" : '#' + Math.floor(Math.random()*16777215).toString(16);
-
         if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition((pos) => {
                 if (isKicked) return;
                 const { latitude, longitude, speed } = pos.coords;
                 myPos = [latitude, longitude];
                 const kmh = speed ? Math.round(speed * 3.6) : 0;
-                
-                db.ref(`groups/${groupId}/users/${userId}`).update({ 
-                    lat: latitude, lng: longitude, name: myName, color: myColor, speed: kmh, isHost: isHost 
-                });
+                db.ref(`groups/${groupId}/users/${userId}`).update({ lat: latitude, lng: longitude, name: myName, color: myColor, speed: kmh, isHost: isHost });
                 db.ref(`groups/${groupId}/users/${userId}`).onDisconnect().remove();
                 if (isFirstPosition) { map.setView(myPos, 16); isFirstPosition = false; }
                 updateNavLine();
@@ -218,10 +263,7 @@
         }
 
         db.ref(`groups/${groupId}/users/${userId}`).on('value', (s) => {
-            if (!s.exists() && !isFirstPosition) {
-                alert("⚠️ ALERT: Host want you to go back or leave the session.");
-                location.reload();
-            }
+            if (!s.exists() && !isFirstPosition) { alert("⚠️ ALERT: Host want you to go back or leave the session."); location.reload(); }
         });
 
         if (isHost) {
@@ -237,11 +279,7 @@
                 destPos = [d.lat, d.lng];
                 if (destMarker) map.removeLayer(destMarker);
                 destMarker = L.marker(destPos, {
-                    icon: L.divIcon({ 
-                        className: 'dest-beacon', 
-                        html: '<div style="position:absolute; top:-25px; background:#ef4444; color:white; padding:2px 8px; border-radius:4px; font-size:9px; font-weight:800;">TARGET</div><div class="beacon-ring"></div><div class="beacon-center"></div>',
-                        iconSize: [40, 40]
-                    })
+                    icon: L.divIcon({ className: 'dest-beacon', html: '<div style="position:absolute; top:-25px; background:#ef4444; color:white; padding:2px 8px; border-radius:4px; font-size:9px; font-weight:800;">TARGET</div><div class="beacon-ring"></div><div class="beacon-center"></div>', iconSize: [40, 40] })
                 }).addTo(map);
                 updateNavLine();
             }
@@ -260,20 +298,16 @@
             const adminList = document.getElementById('user-list');
             const dash = document.getElementById('host-dashboard');
             if (isHost) { adminList.innerHTML = ""; dash.innerHTML = ""; }
-
             for (let id in users) {
                 const u = users[id];
                 const uCol = u.color || '#22c55e';
                 const badge = u.isHost ? "⭐ " : "";
-                
                 if (isHost && !u.isHost && u.stats) {
                     dash.innerHTML += `<div class="user-stat-row"><b>${u.name}</b>: ${u.stats.dist} Away (${u.stats.eta})</div>`;
                 }
-
                 if (isHost && id !== userId) {
                     adminList.innerHTML += `<div style="font-size:0.6rem; display:flex; justify-content:space-between; margin-bottom:5px;">${u.name} <button class="admin-btn" style="margin:0;" onclick="kickUser('${id}')">REMOVE</button></div>`;
                 }
-
                 const icon = L.divIcon({
                     className: 'c-icon',
                     html: `<div style="display:flex; flex-direction:column; align-items:center;">
@@ -281,28 +315,22 @@
                                 ${badge}${u.name} ${u.speed > 2 ? '• ' + u.speed + ' km/h' : ''}
                             </div>
                             <div style="width:12px; height:12px; background:${uCol}; border:2.5px solid #fff; border-radius:50%; margin-top:3px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);"></div>
-                          </div>`,
-                    iconSize: [40, 60], iconAnchor: [20, 60]
+                          </div>`, iconSize: [40, 60], iconAnchor: [20, 60]
                 });
-                if (markers[id]) { markers[id].setLatLng([u.lat, u.lng]).setIcon(icon); } 
-                else { markers[id] = L.marker([u.lat, u.lng], { icon: icon }).addTo(map); }
+                if (markers[id]) markers[id].setLatLng([u.lat, u.lng]).setIcon(icon);
+                else markers[id] = L.marker([u.lat, u.lng], { icon: icon }).addTo(map);
             }
             for (let id in markers) { if (!users || !users[id]) { map.removeLayer(markers[id]); delete markers[id]; } }
         });
     }
 
     function toggleDashboard() { const d = document.getElementById('host-dashboard'); d.style.display = d.style.display === 'block' ? 'none' : 'block'; }
-    function sendMessage() {
-        const input = document.getElementById('chat-msg');
-        if (input.value.trim()) {
-            db.ref(`groups/${groupId}/chat`).push({ user: myName, text: input.value.trim() });
-            input.value = "";
-        }
-    }
+    function sendMessage() { const input = document.getElementById('chat-msg'); if (input.value.trim()) { db.ref(`groups/${groupId}/chat`).push({ user: myName, text: input.value.trim() }); input.value = ""; } }
     function kickUser(id) { if (confirm("Remove user?")) db.ref(`groups/${groupId}/users/${id}`).remove(); }
     function nuclearReset() { if (confirm("WIPE ENTIRE MAP?")) { db.ref(`groups/${groupId}`).remove().then(()=>location.reload()); } }
     function leaveSession() { db.ref(`groups/${groupId}/users/${userId}`).remove(); location.reload(); }
     function toggleQR() { const m = document.getElementById('qr-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
+    function copySessionCode() { navigator.clipboard.writeText(groupId); alert("Code copied: " + groupId); }
 </script>
 </body>
 </html>
