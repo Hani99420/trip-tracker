@@ -169,7 +169,7 @@
         const inputKey = document.getElementById('portal-key').value.trim().toUpperCase();
         
         // 1. Check for Admin Secret
-        if (inputKey === "HANI77") {
+        if (inputKey === "CREATE SESSION") {
             isHost = true;
             let rawName = prompt("ACCESS GRANTED. ENTER COMMANDER NAME:") || "HANI";
             myName = rawName.replace(/[^\w\s]/gi, '').trim() + " (DEV)";
@@ -194,7 +194,7 @@
             myName = rawName.replace(/[^\w\s]/gi, '').trim();
         }
         else {
-            alert("INVALID KEY. Please enter hani77 or a valid session code.");
+            alert("INVALID KEY. Please enter CREATE SESSION or a valid session code.");
             return;
         }
 
