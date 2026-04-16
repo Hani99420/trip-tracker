@@ -44,7 +44,7 @@
             border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid #1a73e8;
             padding: 10px 15px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
             position: absolute; top: 65px; left: 15px; pointer-events: auto; display: block;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5); color: white; z-index: 1100;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4); color: white; z-index: 1100;
         }
 
         .status { background: rgba(0,0,0,0.85); padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; border: 1px solid #22c55e; color: #22c55e; font-weight: 600; }
@@ -153,7 +153,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Unified Logic for Host/User
     let groupId = window.location.hash.substring(1);
     let isHost = false;
     let myName = "", isFirstPosition = true, isKicked = false, watchId = null;
@@ -168,18 +167,16 @@
     function launchApp() {
         const inputKey = document.getElementById('portal-key').value.trim().toUpperCase();
         
-        // 1. Check for Admin Secret
+        // THE CHANGE: Authentication key updated to "CREATE SESSION"
         if (inputKey === "CREATE SESSION") {
             isHost = true;
             let rawName = prompt("ACCESS GRANTED. ENTER COMMANDER NAME:") || "HANI";
             myName = rawName.replace(/[^\w\s]/gi, '').trim() + " (DEV)";
-            // Generate Session ID if not in one
             if (!groupId) {
                 groupId = Math.random().toString(36).substr(2, 6).toUpperCase();
                 window.location.hash = groupId;
             }
         } 
-        // 2. Check for Joining existing session (via code)
         else if (inputKey.length === 6) {
             isHost = false;
             groupId = inputKey;
@@ -187,7 +184,6 @@
             let rawName = prompt("SESSION FOUND. ENTER YOUR IDENTITY:") || "User";
             myName = rawName.replace(/[^\w\s]/gi, '').trim();
         } 
-        // 3. Handle Direct Link Join
         else if (groupId) {
             isHost = false;
             let rawName = prompt("JOINING SECURE GRID. ENTER YOUR IDENTITY:") || "User";
@@ -213,7 +209,6 @@
             document.getElementById('host-qr-btn').style.display = 'none';
         }
 
-        // Initialize QR for this specific session
         document.getElementById("qrcode").innerHTML = "";
         new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 150, height: 150 });
         document.getElementById('display-code').innerText = groupId;
