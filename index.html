@@ -17,7 +17,7 @@
 
     <style>
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { height: 100%; width: 100%; overflow: hidden; font-family: 'Poppins', sans-serif; background: #0b0b0b; color: white; }
+        body, html { height: 100%; width: 100%; overflow: hidden; font-family: 'Poppins', sans-serif; background: #000; color: white; }
 
         .page { display: none; height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; z-index: 10; }
         #intro-page.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -29,34 +29,33 @@
         .btn-elegant { padding: 12px 40px; color: #22c55e; border: 1px solid #22c55e; background: none; border-radius: 4px; cursor: pointer; letter-spacing: 2px; font-weight: 600; }
 
         #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
-        .leaflet-tile-pane { filter: brightness(0.6) contrast(1.2) grayscale(0.5); }
 
         .ui-layer { position: absolute; top: 0; left: 0; z-index: 1000; width: 100%; height: 100%; padding: 15px; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
         .top-bar { display: flex; justify-content: space-between; pointer-events: auto; }
-        .status { background: rgba(0,0,0,0.9); padding: 5px 15px; border-radius: 20px; font-size: 0.7rem; border: 1px solid #22c55e; color: #22c55e; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .status { background: rgba(0,0,0,0.85); padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; border: 1px solid #22c55e; color: #22c55e; font-weight: 600; }
         
         .chat-container { 
-            width: 100%; max-width: 320px; background: rgba(15,15,15,0.95); border-radius: 8px; border: 1px solid #333; 
-            padding: 12px; pointer-events: auto !important; margin-bottom: 25px;
+            width: 100%; max-width: 320px; background: rgba(0,0,0,0.95); border-radius: 12px; border: 1px solid #333; 
+            padding: 12px; pointer-events: auto !important; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
         #chat-logs { height: 100px; overflow-y: auto; font-size: 0.8rem; color: #ccc; margin-bottom: 10px; border-bottom: 1px solid #222; }
         .chat-input-area { display: flex; gap: 8px; }
-        #chat-msg { background: #000; border: 1px solid #333; color: white; padding: 10px; border-radius: 4px; flex-grow: 1; font-size: 14px; }
-        .send-btn { background: #22c55e; border: none; padding: 0 15px; border-radius: 4px; font-weight: bold; cursor: pointer; color: #000; }
+        #chat-msg { background: #111; border: 1px solid #22c55e; color: white; padding: 10px; border-radius: 6px; flex-grow: 1; font-size: 16px; }
+        .send-btn { background: #22c55e; border: none; padding: 0 15px; border-radius: 6px; font-weight: bold; cursor: pointer; color: #000; }
 
-        #admin-panel { position: absolute; top: 75px; right: 15px; background: rgba(30,0,0,0.9); border: 1px solid #ff3b3b; padding: 10px; border-radius: 6px; z-index: 1001; pointer-events: auto; display: none; }
-        .admin-btn { background: #ff3b3b; color: white; border: none; padding: 4px 8px; font-size: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        #admin-panel { position: absolute; top: 75px; right: 15px; background: rgba(200,0,0,0.2); border: 1px solid #ff3b3b; padding: 10px; border-radius: 8px; z-index: 1001; pointer-events: auto; display: none; }
+        .admin-btn { background: #ff3b3b; color: white; border: none; padding: 4px 8px; font-size: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; }
 
         .dest-beacon { position: relative; display: flex; align-items: center; justify-content: center; }
-        .beacon-ring { position: absolute; width: 45px; height: 45px; background: rgba(239, 68, 68, 0.2); border-radius: 50%; animation: beaconPulse 2s infinite; }
+        .beacon-ring { position: absolute; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.4); border-radius: 50%; animation: beaconPulse 1.5s infinite; }
         .beacon-center { width: 14px; height: 14px; background: #ef4444; border: 2px solid white; border-radius: 50%; z-index: 2; }
-        .dest-label { position: absolute; top: -30px; background: #ef4444; color: white; padding: 2px 10px; border-radius: 4px; font-size: 10px; font-weight: 800; white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,0.5); text-transform: uppercase; }
+        .dest-label { position: absolute; top: -25px; background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
-        .route-dist-tag { color: white; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        .route-dist-tag { background: #4285F4; color: white; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; border: 1.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4); white-space: nowrap; }
 
-        @keyframes beaconPulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+        @keyframes beaconPulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         .leaflet-routing-container { display: none !important; }
-        #qr-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 12px; display: none; z-index: 2000; text-align: center; color: black; pointer-events: auto; }
+        #qr-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; display: none; z-index: 2000; text-align: center; color: black; pointer-events: auto; }
         @keyframes logoPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
 </head>
@@ -65,7 +64,7 @@
     <div id="intro-page" class="page active">
         <div class="logo-glow">🛡️</div>
         <h1 class="main-title">GuardianSync</h1>
-        <div style="font-size:0.7rem; color:#475569; letter-spacing:4px; margin-bottom:40px;">SECURE LIVE GRID</div>
+        <div style="font-size:0.7rem; color:#475569; letter-spacing:4px; margin-bottom:40px;">SECURE LIVE TRACKING</div>
         <button class="btn-elegant" id="entry-btn" onclick="launchApp()">INITIALIZE SYSTEM</button>
         <div style="position: absolute; bottom: 30px; font-size: 0.6rem; letter-spacing: 5px; color: #334155;">DESIGNED BY HANI</div>
     </div>
@@ -77,12 +76,12 @@
                 <div class="status" id="role-display">● SECURE NODE</div>
                 <div style="display: flex; gap: 8px;">
                     <button id="host-qr-btn" style="background:#22c55e; border:none; padding:6px 15px; border-radius:20px; font-size:0.7rem; font-weight:bold; color:black;" onclick="toggleQR()">SHARE</button>
-                    <button onclick="leaveSession()" style="background:#1a1a1a; color:white; border:1px solid #333; padding:6px 15px; border-radius:20px; font-size:0.7rem;">LEAVE</button>
+                    <button onclick="leaveSession()" style="background:#333; color:white; border:none; padding:6px 15px; border-radius:20px; font-size:0.7rem;">LEAVE</button>
                 </div>
             </div>
 
             <div id="admin-panel">
-                <p style="font-size: 0.6rem; color: #ff3b3b; font-weight: 800; margin-bottom: 5px;">HOST COMMAND</p>
+                <p style="font-size: 0.6rem; color: #ff3b3b; font-weight: bold; margin-bottom: 5px;">HOST COMMAND</p>
                 <div id="user-list"></div>
                 <button class="admin-btn" style="width:100%;" onclick="nuclearReset()">WIPE ALL DATA</button>
             </div>
@@ -129,21 +128,22 @@
     let destMarker = null;
 
     if (!isHost) {
-        document.getElementById('entry-btn').innerText = "JOIN GRID SESSION";
+        document.getElementById('entry-btn').innerText = "JOIN FAMILY SESSION";
         document.getElementById('host-qr-btn').style.display = 'none';
     }
 
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 5);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    // ATTRACTIVE DARK MAP REINSTATED
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
     new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 150, height: 150 });
 
     window.addEventListener('resize', () => map.invalidateSize());
 
     function launchApp() {
-        // STRIP EMOJIS: Only letters and numbers allowed
-        let rawName = prompt("Enter Name (Alphanumeric only):") || "User";
+        // EMOJI STRIPPER ADDED
+        let rawName = prompt("Enter Name:") || "User";
         myName = rawName.replace(/[^\w\s]/gi, '').trim() || "User";
-        
+
         document.getElementById('intro-page').classList.remove('active');
         document.getElementById('map-page').classList.add('active');
         setTimeout(() => map.invalidateSize(), 300);
@@ -151,13 +151,12 @@
         if (isHost) {
             document.getElementById('admin-panel').style.display = 'block';
             document.getElementById('role-display').innerText = "⭐ COMMAND HOST";
-            document.getElementById('role-display').style.color = "#FFD700";
-            document.getElementById('role-display').style.borderColor = "#FFD700";
+            document.getElementById('role-display').style.color = "gold";
+            document.getElementById('role-display').style.borderColor = "gold";
         }
         startGuardian();
     }
 
-    // BOOM FEATURE: Line updates from current position and erases behind you
     async function updateNavLine() {
         if (roadLine) map.removeLayer(roadLine);
         if (roadGlow) map.removeLayer(roadGlow);
@@ -173,13 +172,9 @@
                 const route = data.routes[0];
                 const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
                 
-                // Professional Slate Blue Line (No childish glow)
-                roadLine = L.polyline(coords, {
-                    color: '#4A90E2',
-                    weight: 5,
-                    opacity: 1,
-                    lineCap: 'round'
-                }).addTo(map);
+                // BOOM LINE: Neon Glow Effect
+                roadGlow = L.polyline(coords, { color: '#00f2ff', weight: 12, opacity: 0.3 }).addTo(map);
+                roadLine = L.polyline(coords, { color: '#ffffff', weight: 4, opacity: 1 }).addTo(map);
 
                 const d = route.distance;
                 const distText = d > 1000 ? (d/1000).toFixed(1) + " km" : Math.round(d) + " m";
@@ -189,7 +184,7 @@
                 distMarker = L.marker(myPos, {
                     icon: L.divIcon({ 
                         className: 'rt-tag', 
-                        html: `<div class="route-dist-tag" style="background:#4A90E2; border:1px solid white;">${distText} • ${etaText}</div>`, 
+                        html: `<div class="route-dist-tag" style="background:#000; border:1px solid #00f2ff;">${distText} • ${etaText}</div>`, 
                         iconAnchor: [0, -30] 
                     })
                 }).addTo(map);
@@ -198,7 +193,7 @@
     }
 
     function startGuardian() {
-        const myColor = isHost ? "#FFD700" : '#' + Math.floor(Math.random()*16777215).toString(16);
+        const myColor = isHost ? "gold" : '#' + Math.floor(Math.random()*16777215).toString(16);
 
         if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition((pos) => {
@@ -212,13 +207,10 @@
                 });
                 db.ref(`groups/${groupId}/users/${userId}`).onDisconnect().remove();
                 if (isFirstPosition) { map.setView(myPos, 16); isFirstPosition = false; }
-                
-                // RECALCULATE starting point to clear trail behind
                 updateNavLine();
             }, null, { enableHighAccuracy: true });
         }
 
-        // CUSTOM KICK MESSAGE
         db.ref(`groups/${groupId}/users/${userId}`).on('value', (snapshot) => {
             if (!snapshot.exists() && !isFirstPosition) {
                 isKicked = true;
@@ -231,7 +223,6 @@
         if (isHost) {
             map.on('contextmenu', (e) => {
                 db.ref(`groups/${groupId}/dest`).set({ lat: e.latlng.lat, lng: e.latlng.lng });
-                // CUSTOM CHAT MESSAGE
                 db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: "🔄 Host changed his mind! Target updated." });
                 if (navigator.vibrate) navigator.vibrate(50);
             });
@@ -256,7 +247,7 @@
         db.ref(`groups/${groupId}/chat`).limitToLast(15).on('child_added', (s) => {
             const m = s.val();
             const logs = document.getElementById('chat-logs');
-            logs.innerHTML += `<div><b style="color:${m.user==='SYSTEM'?'#ff3b3b':'#22c55e'}">${m.user}:</b> ${m.text}</div>`;
+            logs.innerHTML += `<div><b>${m.user}:</b> ${m.text}</div>`;
             logs.scrollTop = logs.scrollHeight;
         });
 
@@ -267,8 +258,10 @@
             if (isHost) adminList.innerHTML = "";
             for (let id in users) {
                 const u = users[id];
-                const uCol = u.isHost ? "#FFD700" : (u.color || '#22c55e');
-                const badge = u.isHost ? "⭐ " : ""; // STAR ICON
+                const uCol = u.color || '#22c55e';
+                const uSpeed = u.speed || 0;
+                // STAR FOR HOST ONLY Logic
+                const badge = u.isHost ? "⭐ " : "";
 
                 if (isHost && id !== userId) {
                     adminList.innerHTML += `<div style="font-size:0.6rem; display:flex; justify-content:space-between; margin-bottom:5px;">${u.name} <button class="admin-btn" onclick="kickUser('${id}')">REMOVE</button></div>`;
@@ -277,12 +270,13 @@
                 const icon = L.divIcon({
                     className: 'c-icon',
                     html: `<div style="display:flex; flex-direction:column; align-items:center;">
-                            <div style="background:rgba(20,20,20,0.95); color:${uCol}; padding:2px 8px; border-radius:4px; font-size:10px; border:1px solid ${uCol}; white-space:nowrap; font-weight:600;">
-                                ${badge}${u.name} ${u.speed > 2 ? '• ' + u.speed + ' km/h' : ''}
+                            <div style="background:rgba(0,0,0,0.8); color:white; padding:2px 6px; border-radius:8px; font-size:9px; border:1px solid ${uCol}; white-space:nowrap;">
+                                ${badge}${u.name} ${uSpeed > 2 ? '• ' + uSpeed + ' km/h' : ''}
                             </div>
-                            <div style="width:12px; height:12px; background:${uCol}; border:2px solid #fff; border-radius:50%; margin-top:2px; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>
-                          </div>`,
-                    iconSize: [40, 60], iconAnchor: [20, 60]
+                            <div style="position:relative; width:12px; height:12px;">
+                                <div style="width:12px; height:12px; background:${uCol}; border:2px solid #fff; border-radius:50%;"></div>
+                            </div></div>`,
+                    iconSize: [40, 50], iconAnchor: [20, 50]
                 });
                 if (markers[id]) { markers[id].setLatLng([u.lat, u.lng]); markers[id].setIcon(icon); } 
                 else { markers[id] = L.marker([u.lat, u.lng], { icon: icon }).addTo(map); }
@@ -291,22 +285,20 @@
         });
     }
 
-    document.getElementById('chat-msg').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
     function sendMessage() {
         const input = document.getElementById('chat-msg');
         if (input.value.trim()) {
             db.ref(`groups/${groupId}/chat`).push({ user: myName, text: input.value.trim() });
             input.value = "";
-            input.focus();
         }
     }
     function kickUser(id) { 
-        if (confirm("Remove user from grid?")) {
+        if (confirm("Remove user?")) {
             db.ref(`groups/${groupId}/chat`).push({ user: "SYSTEM", text: "⚠️ Host requested a user to go back." });
             db.ref(`groups/${groupId}/users/${id}`).remove(); 
         }
     }
-    function nuclearReset() { if (confirm("TERMINATE GRID?")) { db.ref(`groups/${groupId}`).remove().then(()=>location.reload()); } }
+    function nuclearReset() { if (confirm("WIPE ENTIRE MAP?")) { db.ref(`groups/${groupId}`).remove().then(()=>location.reload()); } }
     function leaveSession() { db.ref(`groups/${groupId}/users/${userId}`).remove(); location.reload(); }
     function toggleQR() { const m = document.getElementById('qr-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
 </script>
